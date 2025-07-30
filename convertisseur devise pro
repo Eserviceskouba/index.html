@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Convertisseur DZD - E-Services</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    :root {
+      --primary: #1a2980;
+      --secondary: #26d0ce;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, var(--primary), var(--secondary));
+      color: #333;
+    }
+
+    .container {
+      background: #fff;
+      margin: 30px auto;
+      padding: 25px;
+      border-radius: 12px;
+      max-width: 800px;
+      width: calc(100% - 30px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 30px;
+    }
+
+    .header img {
+      height: 60px;
+      border-radius: 8px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: var(--primary);
+    }
+
+    label {
+      display: block;
+      margin-top: 20px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .option {
+      flex: 1 1 140px;
+      padding: 12px;
+      text-align: center;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .option.active {
+      background: #eafafa;
+      border-color: var(--secondary);
+    }
+
+    .btn {
+      margin-top: 25px;
+      width: 100%;
+      padding: 15px;
+      font-size: 18px;
+      background: var(--secondary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    .btn:hover {
+      background: #1fa8a6;
+    }
+
+    .result {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f1f1f1;
+      border-radius: 10px;
+    }
+
+    .result div {
+      margin-bottom: 10px;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 15px;
+      }
+
+      .header {
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        text-align: center;
+      }
+
+      .header h1 {
+        font-size: 1.5rem;
+        margin-top: 5px;
+      }
+
+      .header img {
+        height: 50px;
+      }
+
+      input, select {
+        font-size: 16px;
+        padding: 10px;
+      }
+
+      .option {
+        flex: 1 1 100%;
+        padding: 10px;
+        font-size: 1rem;
+      }
+
+      .btn {
+        font-size: 16px;
+        padding: 12px;
+      }
+
+      .result {
+        padding: 15px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="logo_eservices.jpg" alt="E-Services Logo">
+      <h1>E-Services Kouba</h1>
+    </div>
+
+    <label for="amount">Montant à convertir :</label>
+    <input type="number" id="amount" placeholder="Entrez le montant" value="100" />
+
+    <label for="currency">Devise :</label>
+    <select id="currency">
+      <option value="EUR">Euro (EUR)</option>
+      <option value="USD">Dollar Américain (USD)</option>
+    </select>
+
+    <label>Type de transaction :</label>
+    <div class="options" id="type-options">
+      <div class="option active" data-type="product">Produit</div>
+      <div class="option" data-type="service">Service</div>
+    </div>
+
+    <label>Mode de paiement :</label>
+    <div class="options" id="payment-options">
+      <div class="option" data-method="online">
+        Paiement par carte Dahabia ou CIB, via site, lien ou QR Code
+      </div>
+      <div class="option active" data-method="cash">Paiement main à main</div>
+    </div>
+
+    <button class="btn" id="convert-btn">Convertir maintenant</button>
+
+    <div class="result" id="result" style="display: none;">
+      <div><strong>Montant converti :</strong> <span id="converted-amount"></span></div>
+      <div><strong>Frais ajoutés :</strong> <span id="percentage-added"></span></div>
+      <div><strong>Taxe paiement :</strong> <span id="tax-added"></span></div>
+      <div><strong>Total en DZD :</strong> <span id="total-amount"></span></div>
+    </div>
+  </div>
+
+  <script>
+    const config = {
+      rates: { EUR: 265, USD: 240 },
+      percentages: { product: 10, service: 15 },
+      taxRate: 2
+    };
+
+    let choiceType = "product";
+    let paymentMethod = "cash";
+
+    const amountInput = document.getElementById("amount");
+    const currencySelect = document.getElementById("currency");
+    const convertBtn = document.getElementById("convert-btn");
+    const resultBlock = document.getElementById("result");
+    const convertedAmount = document.getElementById("converted-amount");
+    const percentageAdded = document.getElementById("percentage-added");
+    const taxAdded = document.getElementById("tax-added");
+    const totalAmount = document.getElementById("total-amount");
+
+    document.querySelectorAll("#type-options .option").forEach(opt => {
+      opt.addEventListener("click", () => {
+        document.querySelectorAll("#type-options .option").forEach(o => o.classList.remove("active"));
+        opt.classList.add("active");
+        choiceType = opt.dataset.type;
+      });
+    });
+
+    document.querySelectorAll("#payment-options .option").forEach(opt => {
+      opt.addEventListener("click", () => {
+        document.querySelectorAll("#payment-options .option").forEach(o => o.classList.remove("active"));
+        opt.classList.add("active");
+        paymentMethod = opt.dataset.method;
+      });
+    });
+
+    convertBtn.addEventListener("click", () => {
+      const amount = parseFloat(amountInput.value);
+      const currency = currencySelect.value;
+      if (isNaN(amount) || amount <= 0) {
+        alert("Entrez un montant valide.");
+        return;
+      }
+
+      const rate = config.rates[currency];
+      const base = amount * rate;
+      const percentage = config.percentages[choiceType] / 100;
+      const fee = base * percentage;
+      const tax = paymentMethod === "online" ? (base + fee) * (config.taxRate / 100) : 0;
+      const total = base + fee + tax;
+
+      convertedAmount.textContent = base.toFixed(2) + " DZD";
+      percentageAdded.textContent = fee.toFixed(2) + " DZD";
+      taxAdded.textContent = tax.toFixed(2) + " DZD";
+      totalAmount.textContent = total.toFixed(2) + " DZD";
+
+      resultBlock.style.display = "block";
+    });
+  </script>
+</body>
+</html>
